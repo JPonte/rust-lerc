@@ -7,7 +7,8 @@ include!(concat!(env!("CARGO_MANIFEST_DIR"), "/bindings.rs"));
 mod lerc {
     use super::*;
     use std::fs::File;
-    use std::io::{Error, Read, ErrorKind};
+    use std::io::{Error, ErrorKind, Read};
+    use std::ptr::null;
 
     #[derive(Debug)]
     pub struct BlobInfo {
@@ -83,7 +84,10 @@ mod lerc {
                 3,
             );
             if info_result > 0 {
-                return Err(Error::new(ErrorKind::Other, format!("Failed to get info from blob: {}", info_result)));
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to get info from blob: {}", info_result),
+                ));
             }
             let blob_info = BlobInfo::new(&info_vec);
             let data_range = DataRange::new(&data_range_vec);
@@ -105,7 +109,10 @@ mod lerc {
                 p_data.as_mut_ptr(),
             );
             if decode_result > 0 {
-                return Err(Error::new(ErrorKind::Other, format!("Failed to decode blob: {}", decode_result)));
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to decode blob: {}", decode_result),
+                ));
             }
             Ok(LercDataset {
                 info: blob_info,
@@ -115,7 +122,64 @@ mod lerc {
         }
     }
 
-    // TODO: Encoder
+    // TODO: masks/values per pixel
+    pub fn encode(
+        data: Vec<f64>,
+        n_rows: usize,
+        n_cols: usize,
+        n_bands: usize,
+        max_z_err: f64,
+    ) -> Result<Vec<u8>, Error> {
+        unsafe {
+            let data_type = 6; // Float
+            let mut compressed_size: u32 = 0;
+
+            let size_check_res = lerc_computeCompressedSize(
+                data.as_ptr() as *const core::ffi::c_void,
+                data_type,
+                1,
+                n_cols as i32,
+                n_rows as i32,
+                n_bands as i32,
+                0,
+                null(),
+                max_z_err,
+                &mut compressed_size,
+            );
+
+            if size_check_res > 0 {
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to check compressed size: {}", size_check_res),
+                ));
+            }
+
+            let mut encoded_result = vec![0; compressed_size as usize];
+            let mut bytes_written: u32 = 0;
+
+            let encode_res = lerc_encode(
+                data.as_ptr() as *const core::ffi::c_void,
+                data_type,
+                1,
+                n_cols as i32,
+                n_rows as i32,
+                n_bands as i32,
+                0,
+                null(),
+                max_z_err,
+                encoded_result.as_mut_ptr(),
+                compressed_size,
+                &mut bytes_written,
+            );
+            if encode_res > 0 {
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to encode: {}", encode_res),
+                ));
+            }
+            Ok(encoded_result)
+        }
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -129,6 +193,26 @@ mod tests {
             println!("Data: {:?}", blob.data.len());
             println!("Info: {:?}", blob.info);
             println!("Data Range: {:?}", blob.data_range);
+        } else {
+            panic!("Oops :(");
+        }
+    }
+
+    #[test]
+    fn encode_blob() {
+        let file = File::open("example_file").unwrap();
+        if let Ok(blob) = lerc::decode_file(file) {
+            if let Ok(encoded) = lerc::encode(
+                blob.data,
+                blob.info.n_rows as usize,
+                blob.info.n_cols as usize,
+                blob.info.n_bands as usize,
+                blob.data_range.max_z_err_used,
+            ) {
+                println!("Encoded: {}", encoded.len());
+            } else {
+                panic!("Oops :(");
+            }
         } else {
             panic!("Oops :(");
         }
