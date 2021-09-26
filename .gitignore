@@ -1,3 +1,5 @@
 /target
 /lerc-3.0
 bindings.rs
+.DS_Store
+example_file
