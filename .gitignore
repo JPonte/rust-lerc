@@ -3,3 +3,4 @@
 bindings.rs
 .DS_Store
 example_file
+.cargo/
