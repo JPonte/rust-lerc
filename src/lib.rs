@@ -187,8 +187,8 @@ mod tests {
     use std::fs::File;
 
     #[test]
-    fn decode_blob() {
-        let file = File::open("example_file").unwrap();
+    fn docode_bluemarble() {
+        let file = File::open("lerc-3.0/testData/bluemarble_256_256_3_byte.lerc2").unwrap();
         if let Ok(blob) = lerc::decode_file(file) {
             println!("Data: {:?}", blob.data.len());
             println!("Info: {:?}", blob.info);
@@ -199,8 +199,72 @@ mod tests {
     }
 
     #[test]
-    fn encode_blob() {
-        let file = File::open("example_file").unwrap();
+    fn docode_california() {
+        let file = File::open("lerc-3.0/testData/california_400_400_1_float.lerc2").unwrap();
+        if let Ok(blob) = lerc::decode_file(file) {
+            println!("Data: {:?}", blob.data.len());
+            println!("Info: {:?}", blob.info);
+            println!("Data Range: {:?}", blob.data_range);
+        } else {
+            panic!("Oops :(");
+        }
+    }
+
+    #[test]
+    fn docode_world() {
+        let file = File::open("lerc-3.0/testData/world.lerc1").unwrap();
+        if let Ok(blob) = lerc::decode_file(file) {
+            println!("Data: {:?}", blob.data.len());
+            println!("Info: {:?}", blob.info);
+            println!("Data Range: {:?}", blob.data_range);
+        } else {
+            panic!("Oops :(");
+        }
+    }
+
+    #[test]
+    fn encode_bluemarble() {
+        let file = File::open("lerc-3.0/testData/bluemarble_256_256_3_byte.lerc2").unwrap();
+        if let Ok(blob) = lerc::decode_file(file) {
+            if let Ok(encoded) = lerc::encode(
+                blob.data,
+                blob.info.n_rows as usize,
+                blob.info.n_cols as usize,
+                blob.info.n_bands as usize,
+                blob.data_range.max_z_err_used,
+            ) {
+                println!("Encoded: {}", encoded.len());
+            } else {
+                panic!("Oops :(");
+            }
+        } else {
+            panic!("Oops :(");
+        }
+    }
+
+    #[test]
+    fn encode_california() {
+        let file = File::open("lerc-3.0/testData/california_400_400_1_float.lerc2").unwrap();
+        if let Ok(blob) = lerc::decode_file(file) {
+            if let Ok(encoded) = lerc::encode(
+                blob.data,
+                blob.info.n_rows as usize,
+                blob.info.n_cols as usize,
+                blob.info.n_bands as usize,
+                blob.data_range.max_z_err_used,
+            ) {
+                println!("Encoded: {}", encoded.len());
+            } else {
+                panic!("Oops :(");
+            }
+        } else {
+            panic!("Oops :(");
+        }
+    }
+
+    #[test]
+    fn encode_world() {
+        let file = File::open("lerc-3.0/testData/world.lerc1").unwrap();
         if let Ok(blob) = lerc::decode_file(file) {
             if let Ok(encoded) = lerc::encode(
                 blob.data,
